@@ -291,6 +291,52 @@ impl Chip8 {
                 // See instruction 8xy3 for more information on XOR, and section 2.4, Display, for more information on the Chip-8 screen and sprites.
                 // Dxyn
                 
+                // x, y coord 
+                let x_coord = self.v_reg[d2 as usize] as u16;
+                let y_coord = self.v_reg[d3 as usize] as u16;
+
+                // n = dteremins how many rows high our sprit is
+                let rows = d4;
+                // keep track if any pixels were flipped
+                let mut flipped = false;
+                //iter over each row of sprite
+                for y_line in 0..rows {
+                    let addr = self.i_reg + y_line as u16;
+                    let pixels = self.ram[addr as usize];
+
+                    for x_line in 0..8 {
+                        if (pixels & (0x80 >> x_line)) != 0 {
+                            let x = (x_coord + x_line) as usize % SCREEN_WIDTH;
+                            let y = (y_coord + y_line) as usize % SCREEN_HEIGHT;
+
+                            let idx = x + SCREEN_WIDTH * y;
+
+                            flipped |= self.screen[idx];
+                            self.screen[idx] ^= true;
+                        }
+                    }
+                }
+                self.v_reg[0xF] = if flipped {1} else {0};
+            },
+            (0xE, _, 9, 0xE) => {
+                // Ex9E
+                // Skip if keys pressed
+
+                let key_idx = self.v_reg[d2 as usize];
+                if self.keys[key_idx as usize] {
+                    self.pc += 2
+                } 
+            },
+            (0xE, _, 0xA, 1) => {
+                //Skip if keys not pressed
+                // ExA1
+                let key_idx = self.v_reg[d2 as usize];
+                if !self.keys[key_idx as usize] {
+                    self.pc += 2
+                } 
+            },
+            (0xF, _, 0, 7) => {
+                // Fx07
                 
             }
 
