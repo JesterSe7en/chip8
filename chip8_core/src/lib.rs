@@ -1,3 +1,6 @@
+use std::{ops::{Div}};
+use rand::random;
+
 const MEM_SIZE: usize = 0x1000;
 const V_REG_SIZE: usize = 0x0F;
 const STACK_SIZE: usize = 0x0F;
@@ -213,8 +216,82 @@ impl Chip8 {
                 // 8xy5
                 let x = self.v_reg[d2 as usize];
                 let y = self.v_reg[d3 as usize];
-                self.v_reg[0xF] = if x > y { 1} else {0};
+                self.v_reg[0xF] = if x > y {1} else {0};
                 self.v_reg[d2 as usize] = (y - x) & 0xFF;
+            },
+            (8, _, _, 6) => {
+                // Set Vx = Vx SHR1
+                // if the least-signigicant bit of Vx is 1, then VF is set to 1, otherwise 0.  THen Vx is divided by 2
+                // 8xy6
+                let x = self.v_reg[d2 as usize];
+                let y = self.v_reg[d3 as usize];
+
+                self.v_reg[0xF] =  if (x & 0xF) == 1 {1} else {0};
+                self.v_reg[d2 as usize] =  x.div(y);
+            },
+            (8, _, _, 7) => {
+                // Set Vx = Vy - Vx, set Vx = NOT borrow
+                // if Vy > Vx, then VF is set to 1 otherwise 0.  Results stored in Vx
+                // 8xy7
+
+                let x = self.v_reg[d2 as usize];
+                let y = self.v_reg[d3 as usize]; 
+                let (new_x, borrow) = y.overflowing_sub(x);
+
+                self.v_reg[0xF] = if y > x {1} else {0};
+                self.v_reg[d2 as usize] = new_x;
+            }, 
+            (8, _, _, 0xE) => {
+                // Set Vx = Vx SHL 1.
+                // If the most-significant bit of Vx is 1, then VF is set to 1, otherwise to 0. Then Vx is multiplied by 2.
+                // 8xyE
+                let x = self.v_reg[d2 as usize];
+                let y = self.v_reg[d3 as usize]; 
+
+                self.v_reg[0xF] = if (x & 0xF0) == 1 {1} else {0};
+                self.v_reg[d2 as usize] = x * y;
+            },
+            (9, _, _, 0) => {
+                // Skip next instruction if Vx != Vy.
+                // The values of Vx and Vy are compared, and if they are not equal, the program counter is increased by 2
+                // 9xy0
+                if self.v_reg[d2 as usize] == self.v_reg[d3 as usize] {
+                    return
+                }
+                self.pc += 2;
+            }, 
+            (0xA, _, _, _) => {
+                // Set I = nnn.
+                // The value of register I is set to nnn.
+                // Annn
+                self.i_reg =  (op & 0xFFF) as u16;
+            },
+            (0xB, _, _, _) => {
+                // Jump to location nnn + V0.
+                // The program counter is set to nnn plus the value of V0.
+                // Bnnn
+                self.pc = (op & 0xFFF) + self.v_reg[0] as u16;
+            },
+            (0xC, _, _, _) => {
+                // Set Vx = random byte AND kk.
+                // The interpreter generates a random number from 0 to 255, which is then ANDed with the value kk. 
+                // The results are stored in Vx. See instruction 8xy2 for more information on AND.
+                // Cxkk
+                let kk = (op & 0xFF) as u8;
+                let x = d2 as usize;
+                let rng = rand::random::<u8>();
+                self.v_reg[x] = rng & kk;
+            },
+            (0xD, _, _, _) => {
+                // Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.
+                // The interpreter reads n bytes from memory, starting at the address stored in I. 
+                // These bytes are then displayed as sprites on screen at coordinates (Vx, Vy). 
+                // Sprites are XORed onto the existing screen. If this causes any pixels to be erased, VF is set to 1, otherwise it is set to 0. 
+                // If the sprite is positioned so part of it is outside the coordinates of the display, it wraps around to the opposite side of the screen. 
+                // See instruction 8xy3 for more information on XOR, and section 2.4, Display, for more information on the Chip-8 screen and sprites.
+                // Dxyn
+                
+                
             }
 
 
