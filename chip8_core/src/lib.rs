@@ -149,6 +149,72 @@ impl Chip8 {
             (4, _, _, _) => {
                 // Skip next if Vx != kk
                 // 4XKK
+                let x = d2 as usize;
+                let kk = (op & 0xFF) as u8;
+                if self.v_reg[x] != kk {
+                    self.pc += 2;
+                }
+            },
+            (5, _, _, 0) => {
+                // skip next instruction if Vx = Vy
+                // 5xy0
+                let x = d2 as usize;
+                let y = d3 as usize;
+                if self.v_reg[x] == self.v_reg[y] {
+                    self.pc += 2;
+                }
+            },
+            (6, _, _, _) => {
+                // set Vx = kk
+                // 6xkk
+                let x = d2 as usize;
+                let kk  = (op & 0xFF) as u8;
+                self.v_reg[x] = kk;
+            },
+            (7, _, _, _) =>  {
+                // set Vx = Vx + kk
+                // 7xkk
+                self.v_reg[d2 as usize] += (op & 0xFF) as u8;
+            },
+            (8, _, _, 0) => {
+                // set Vx = Vy
+                // 8xy0
+                self.v_reg[d2 as usize] = self.v_reg[d3 as usize];
+            },
+            (8, _, _, 1) => {
+                // set Vx = Vx or Vy
+                // 8xy1
+                self.v_reg[d2 as usize] |= self.v_reg[d3 as usize];
+            },
+            (8, _, _, 2) => {
+                // set Vx = Vx and Vy
+                // 8xy2
+                self.v_reg[d2 as usize] &= self.v_reg[d3 as usize];
+            },
+            (8, _, _, 3) => {
+                // set Vx = Vx xor Vy
+                // 8xy3
+                self.v_reg[d2 as usize] ^= self.v_reg[d3 as usize];
+            },
+            (8, _, _, 4) => {
+                // sets Vx = Vx + Vy, set VF = carry
+                // Values of Vx and Vy are added together.  If reult is greater than 8 bits, VF is set to 1, otherwise 0.  Lowest 8 bits are saved in Vx
+                // 8xy4
+                let x = self.v_reg[d2 as usize];
+                let y = self.v_reg[d3 as usize];
+
+                let (new_x, carry) =x.overflowing_add(y);
+                self.v_reg[0xF] =  if carry {1} else {0};
+                self.v_reg[d2 as usize] = new_x;
+            },
+            (8, _, _, 5) => {
+                // Set Vx = Vx - Vy, set VF = NOT borrow
+                // if Vx > Vy, then VF is set to 1, otherwise 0.  Then Vy is subtracted from Vx, result is stored in Vx
+                // 8xy5
+                let x = self.v_reg[d2 as usize];
+                let y = self.v_reg[d3 as usize];
+                self.v_reg[0xF] = if x > y { 1} else {0};
+                self.v_reg[d2 as usize] = (y - x) & 0xFF;
             }
 
 
