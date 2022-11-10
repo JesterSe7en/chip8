@@ -60,6 +60,7 @@ impl Chip8 {
             st: 0,
         };
 
+        // important gor fx29 instruction
         new_chip8.ram[..FONTSET_SIZE].copy_from_slice(&FONTSET);
 
         new_chip8
@@ -337,6 +338,54 @@ impl Chip8 {
             },
             (0xF, _, 0, 7) => {
                 // Fx07
+                // set Vx to delay timer value
+                self.v_reg[d2 as usize] = self.dt;
+            },
+            (0xF, _, 0, 0xA) => {
+                // Fx0A
+                // Wait for key press - blocks until a key is prssed
+                // When more than one key prssed, lowest indexed is used.  This key is stored in Vx
+                let mut pressed = false;
+                for i in 0..self.keys.len() {
+                    if self.keys[i] {
+                        self.v_reg[x] = i as u8;
+                        pressed = true;
+                        break;
+                    }
+                }
+
+                if !pressed {
+                    self.pc += 2;
+                }
+            },
+            (0xF, _, 1, 5) => {
+                // Fx15 
+                // Dt = Vx
+                let new_val = self.v_reg[d2 as usize];
+                self.dt = new_val;
+            },
+            (0xF, _, 1, 8) => {
+                // Fx18
+                // St = Vx
+                let new_val = self.v_reg[d2 as usize];
+                self.st = new_val;
+            },
+            (0xF, _, 1, 0xE) => {
+                // Fx1E
+                // I += Vx
+                // if overflow, register should simply roll over to 0.  (rusts wrapping_add)
+                self.v_reg[d2 as usize] = self.v_reg[d2 as usize].wrapping_add(self.i_reg as u8);
+            }, 
+            (0xF, _, 2, 9) => {
+                // Fx29
+                // Set I to Font Address
+                // fonts are stored in the first sections of ram
+                // we are multiplying by 5 since each font is 5 bytes long
+                self.i_reg = self.v_reg[d2 as usize] as u16 * 5;
+            },
+            (0xF, _, 3, 3) => {
+                // Fx33
+                // i = BCD of Vx (BCD - binary coded decimal)
                 
             }
 
