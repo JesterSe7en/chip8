@@ -112,6 +112,33 @@ impl Chip8 {
         op
     }
 
+    pub fn tick_timers(&mut self) {
+        if self.dt > 0 {
+            self.dt -= 1;
+        }
+
+        if self.st > 0 {
+            if self.st == 1 {
+                // BEEP
+            }
+            self.st -= 1;
+        }
+    }
+
+    pub fn get_display(&mut self) -> &[bool] {
+        &self.screen
+    }
+
+    pub fn keypress(&mut self, idx: usize, pressed: bool) {
+        self.keys[idx] = pressed
+    }
+
+    pub fn load(&mut self, data: &[u8]) {
+        let start = START_ADDR as usize;
+        let end = data.len() + START_ADDR as usize;
+        self.ram[start..end].copy_from_slice(data);
+    }
+
     fn execute(&mut self, op: u16) {
         let d1 = (op & 0xF000) >> 12;
         let d2 = (op & 0x0F00) >> 8;
@@ -413,19 +440,6 @@ impl Chip8 {
                 }
             }
             (_, _, _, _) => unimplemented!("Unimplemented opcode: {}", op),
-        }
-    }
-
-    pub fn tick_timers(&mut self) {
-        if self.dt > 0 {
-            self.dt -= 1;
-        }
-
-        if self.st > 0 {
-            if self.st == 1 {
-                // BEEP
-            }
-            self.st -= 1;
         }
     }
 }
