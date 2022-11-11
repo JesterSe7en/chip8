@@ -1,6 +1,3 @@
-use rand::random;
-use std::ops::Div;
-
 const MEM_SIZE: usize = 0x1000;
 const V_REG_SIZE: usize = 0x0F;
 const STACK_SIZE: usize = 0x0F;
@@ -228,7 +225,7 @@ impl Chip8 {
                 let y = self.v_reg[d3 as usize];
 
                 self.v_reg[0xF] = if (x & 0xF) == 1 { 1 } else { 0 };
-                self.v_reg[d2 as usize] = x.div(y);
+                self.v_reg[d2 as usize] = x / y;
             }
             (8, _, _, 7) => {
                 // Set Vx = Vy - Vx, set Vx = NOT borrow
@@ -386,8 +383,35 @@ impl Chip8 {
             (0xF, _, 3, 3) => {
                 // Fx33
                 // i = BCD of Vx (BCD - binary coded decimal)
+                let x = d2 as usize;
+                let vx = self.v_reg[x] as f32;
+                // Fetch the hundreds digit by dividing by 100 and tossing the decimal
+                let hundreds = (vx / 100.0).floor() as u8;
+                // Fetch the tens digit by dividing by 10, tossing the ones digit and the decimal
+                let tens = ((vx / 10.0) % 10.0).floor() as u8;
+                // Fetch the ones digit by tossing the hundreds and the tens
+                let ones = (vx % 10.0) as u8;
+                self.ram[self.i_reg as usize] = hundreds;
+                self.ram[(self.i_reg + 1) as usize] = tens;
+                self.ram[(self.i_reg + 2) as usize] = ones;
             }
-
+            (0xF, _, 5, 5) => {
+                //Store V0 - VX into I
+                // V Registers V0 thru the specified VX (inclusive)
+                // with the same range of values from RAM, beginning with the address in the I Register. This first one stores the
+                // values into RAM, while the next one will load them the opposite way.
+                let x = d2 as usize;
+                let i = self.i_reg as usize;
+                for idx in 0..=x {
+                    self.ram[i + idx] = self.v_reg[idx];
+                }
+            }
+            (0xF, _x, 6, 5) => {
+                // Load I into V0 - Vx
+                for idx in 0..(d2 as usize) {
+                    self.v_reg[idx] = self.ram[self.i_reg as usize + idx];
+                }
+            }
             (_, _, _, _) => unimplemented!("Unimplemented opcode: {}", op),
         }
     }
