@@ -1,6 +1,12 @@
 use chip8_core::*;
 use sdl2::event::Event;
+use sdl2::pixels::Color;
+use sdl2::rect::Rect;
+use sdl2::render::Canvas;
+use sdl2::video::Window;
 use std::env;
+use std::fs::File;
+use std::io::Read;
 
 const SCALE: u32 = 15;
 const WINDOW_WIDTH: u32 = SCREEN_WIDTH as u32 * SCALE;
@@ -29,6 +35,14 @@ fn main() {
 
     let mut event_pump = sdl_context.event_pump().unwrap();
 
+    let mut chip8 = Chip8::new();
+
+    let mut rom = File::open(&args[1]).expect("Unable to open file"); // see if we can use somethine else other than expect
+    let mut buffer = Vec::new();
+
+    rom.read_to_end(&mut buffer).unwrap();
+    chip8.load(&buffer);
+
     'gameloop: loop {
         for evt in event_pump.poll_iter() {
             match evt {
@@ -37,6 +51,28 @@ fn main() {
                 }
                 _ => (),
             }
+        }
+
+        chip8.tick();
+        draw_screen(&chip8, &mut canvas);
+    }
+}
+
+fn draw_screen(chip8: &Chip8, canvas: &mut Canvas<Window>) {
+    // Clear canvas as black
+    canvas.set_draw_color(Color::RGB(0, 0, 0));
+    canvas.clear();
+
+    let screen_buf = chip8.get_display();
+    canvas.set_draw_color(Color::RGB(255, 255, 255));
+    for (i, pixel) in screen_buf.iter().enumerate() {
+        if *pixel {
+            // covert 1d to 2d position
+            let x = (i % SCREEN_WIDTH) as u32;
+            let y = (i / SCREEN_WIDTH) as u32;
+
+            let rect = Rect::new((x * SCALE) as i32, (y * SCALE) as i32, SCALE, SCALE);
+            canvas.fill_rect(rect).unwrap()
         }
     }
 }

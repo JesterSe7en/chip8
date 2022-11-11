@@ -125,7 +125,7 @@ impl Chip8 {
         }
     }
 
-    pub fn get_display(&mut self) -> &[bool] {
+    pub fn get_display(&self) -> &[bool] {
         &self.screen
     }
 
