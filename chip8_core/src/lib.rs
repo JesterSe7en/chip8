@@ -1,5 +1,5 @@
-use std::{ops::{Div}};
 use rand::random;
+use std::ops::Div;
 
 const MEM_SIZE: usize = 0x1000;
 const V_REG_SIZE: usize = 0x0F;
@@ -83,7 +83,7 @@ impl Chip8 {
     pub fn reset(&mut self) {
         self.pc = START_ADDR;
         self.ram = [0; MEM_SIZE];
-        self.screen = [false; SCREEN_HEIGHT * SCREEN_WIDTH],
+        self.screen = [false; SCREEN_HEIGHT * SCREEN_WIDTH];
         self.v_reg = [0; V_REG_SIZE];
         self.i_reg = 0;
         self.sp = 0;
@@ -111,7 +111,7 @@ impl Chip8 {
 
         // +2 since we are reading 4 bytes = 2 * u16 values
         self.pc += 2;
-        
+
         op
     }
 
@@ -122,25 +122,25 @@ impl Chip8 {
         let d4 = op & 0x000F;
 
         match (d1, d2, d3, d4) {
-            (0, 0, 0, 0) => return, // NOP
-            (0, 0, 0xE, 0) => { self.screen = [false; SCREEN_HEIGHT * SCREEN_WIDTH]}  // clear screen
+            (0, 0, 0, 0) => return,                                                // NOP
+            (0, 0, 0xE, 0) => self.screen = [false; SCREEN_HEIGHT * SCREEN_WIDTH], // clear screen
             (0, 0, 0xE, 0xE) => {
                 // RET
                 let ret_addr = self.pop();
                 self.pc = ret_addr;
-            },
+            }
             (1, _, _, _) => {
                 //JMP NNN
                 let nnn = op & 0xFFF;
                 self.pc = nnn;
-            },
+            }
             (2, _, _, _) => {
                 // CALL addr
                 let addr = op & 0xFFF;
                 self.push(self.pc);
                 self.pc = addr;
-            },
-            (3, _, _ , _) => {
+            }
+            (3, _, _, _) => {
                 // SKIP next if VX == NN
                 // 3XNN
 
@@ -149,7 +149,7 @@ impl Chip8 {
                 if self.v_reg[x] == nn {
                     self.pc += 2
                 }
-            },
+            }
             (4, _, _, _) => {
                 // Skip next if Vx != kk
                 // 4XKK
@@ -158,7 +158,7 @@ impl Chip8 {
                 if self.v_reg[x] != kk {
                     self.pc += 2;
                 }
-            },
+            }
             (5, _, _, 0) => {
                 // skip next instruction if Vx = Vy
                 // 5xy0
@@ -167,39 +167,39 @@ impl Chip8 {
                 if self.v_reg[x] == self.v_reg[y] {
                     self.pc += 2;
                 }
-            },
+            }
             (6, _, _, _) => {
                 // set Vx = kk
                 // 6xkk
                 let x = d2 as usize;
-                let kk  = (op & 0xFF) as u8;
+                let kk = (op & 0xFF) as u8;
                 self.v_reg[x] = kk;
-            },
-            (7, _, _, _) =>  {
+            }
+            (7, _, _, _) => {
                 // set Vx = Vx + kk
                 // 7xkk
                 self.v_reg[d2 as usize] += (op & 0xFF) as u8;
-            },
+            }
             (8, _, _, 0) => {
                 // set Vx = Vy
                 // 8xy0
                 self.v_reg[d2 as usize] = self.v_reg[d3 as usize];
-            },
+            }
             (8, _, _, 1) => {
                 // set Vx = Vx or Vy
                 // 8xy1
                 self.v_reg[d2 as usize] |= self.v_reg[d3 as usize];
-            },
+            }
             (8, _, _, 2) => {
                 // set Vx = Vx and Vy
                 // 8xy2
                 self.v_reg[d2 as usize] &= self.v_reg[d3 as usize];
-            },
+            }
             (8, _, _, 3) => {
                 // set Vx = Vx xor Vy
                 // 8xy3
                 self.v_reg[d2 as usize] ^= self.v_reg[d3 as usize];
-            },
+            }
             (8, _, _, 4) => {
                 // sets Vx = Vx + Vy, set VF = carry
                 // Values of Vx and Vy are added together.  If reult is greater than 8 bits, VF is set to 1, otherwise 0.  Lowest 8 bits are saved in Vx
@@ -207,19 +207,19 @@ impl Chip8 {
                 let x = self.v_reg[d2 as usize];
                 let y = self.v_reg[d3 as usize];
 
-                let (new_x, carry) =x.overflowing_add(y);
-                self.v_reg[0xF] =  if carry {1} else {0};
+                let (new_x, carry) = x.overflowing_add(y);
+                self.v_reg[0xF] = if carry { 1 } else { 0 };
                 self.v_reg[d2 as usize] = new_x;
-            },
+            }
             (8, _, _, 5) => {
                 // Set Vx = Vx - Vy, set VF = NOT borrow
                 // if Vx > Vy, then VF is set to 1, otherwise 0.  Then Vy is subtracted from Vx, result is stored in Vx
                 // 8xy5
                 let x = self.v_reg[d2 as usize];
                 let y = self.v_reg[d3 as usize];
-                self.v_reg[0xF] = if x > y {1} else {0};
+                self.v_reg[0xF] = if x > y { 1 } else { 0 };
                 self.v_reg[d2 as usize] = (y - x) & 0xFF;
-            },
+            }
             (8, _, _, 6) => {
                 // Set Vx = Vx SHR1
                 // if the least-signigicant bit of Vx is 1, then VF is set to 1, otherwise 0.  THen Vx is divided by 2
@@ -227,72 +227,72 @@ impl Chip8 {
                 let x = self.v_reg[d2 as usize];
                 let y = self.v_reg[d3 as usize];
 
-                self.v_reg[0xF] =  if (x & 0xF) == 1 {1} else {0};
-                self.v_reg[d2 as usize] =  x.div(y);
-            },
+                self.v_reg[0xF] = if (x & 0xF) == 1 { 1 } else { 0 };
+                self.v_reg[d2 as usize] = x.div(y);
+            }
             (8, _, _, 7) => {
                 // Set Vx = Vy - Vx, set Vx = NOT borrow
                 // if Vy > Vx, then VF is set to 1 otherwise 0.  Results stored in Vx
                 // 8xy7
 
                 let x = self.v_reg[d2 as usize];
-                let y = self.v_reg[d3 as usize]; 
+                let y = self.v_reg[d3 as usize];
                 let (new_x, borrow) = y.overflowing_sub(x);
 
-                self.v_reg[0xF] = if y > x {1} else {0};
+                self.v_reg[0xF] = if y > x { 1 } else { 0 };
                 self.v_reg[d2 as usize] = new_x;
-            }, 
+            }
             (8, _, _, 0xE) => {
                 // Set Vx = Vx SHL 1.
                 // If the most-significant bit of Vx is 1, then VF is set to 1, otherwise to 0. Then Vx is multiplied by 2.
                 // 8xyE
                 let x = self.v_reg[d2 as usize];
-                let y = self.v_reg[d3 as usize]; 
+                let y = self.v_reg[d3 as usize];
 
-                self.v_reg[0xF] = if (x & 0xF0) == 1 {1} else {0};
+                self.v_reg[0xF] = if (x & 0xF0) == 1 { 1 } else { 0 };
                 self.v_reg[d2 as usize] = x * y;
-            },
+            }
             (9, _, _, 0) => {
                 // Skip next instruction if Vx != Vy.
                 // The values of Vx and Vy are compared, and if they are not equal, the program counter is increased by 2
                 // 9xy0
                 if self.v_reg[d2 as usize] == self.v_reg[d3 as usize] {
-                    return
+                    return;
                 }
                 self.pc += 2;
-            }, 
+            }
             (0xA, _, _, _) => {
                 // Set I = nnn.
                 // The value of register I is set to nnn.
                 // Annn
-                self.i_reg =  (op & 0xFFF) as u16;
-            },
+                self.i_reg = (op & 0xFFF) as u16;
+            }
             (0xB, _, _, _) => {
                 // Jump to location nnn + V0.
                 // The program counter is set to nnn plus the value of V0.
                 // Bnnn
                 self.pc = (op & 0xFFF) + self.v_reg[0] as u16;
-            },
+            }
             (0xC, _, _, _) => {
                 // Set Vx = random byte AND kk.
-                // The interpreter generates a random number from 0 to 255, which is then ANDed with the value kk. 
+                // The interpreter generates a random number from 0 to 255, which is then ANDed with the value kk.
                 // The results are stored in Vx. See instruction 8xy2 for more information on AND.
                 // Cxkk
                 let kk = (op & 0xFF) as u8;
                 let x = d2 as usize;
                 let rng = rand::random::<u8>();
                 self.v_reg[x] = rng & kk;
-            },
+            }
             (0xD, _, _, _) => {
                 // Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.
-                // The interpreter reads n bytes from memory, starting at the address stored in I. 
-                // These bytes are then displayed as sprites on screen at coordinates (Vx, Vy). 
-                // Sprites are XORed onto the existing screen. If this causes any pixels to be erased, VF is set to 1, otherwise it is set to 0. 
-                // If the sprite is positioned so part of it is outside the coordinates of the display, it wraps around to the opposite side of the screen. 
+                // The interpreter reads n bytes from memory, starting at the address stored in I.
+                // These bytes are then displayed as sprites on screen at coordinates (Vx, Vy).
+                // Sprites are XORed onto the existing screen. If this causes any pixels to be erased, VF is set to 1, otherwise it is set to 0.
+                // If the sprite is positioned so part of it is outside the coordinates of the display, it wraps around to the opposite side of the screen.
                 // See instruction 8xy3 for more information on XOR, and section 2.4, Display, for more information on the Chip-8 screen and sprites.
                 // Dxyn
-                
-                // x, y coord 
+
+                // x, y coord
                 let x_coord = self.v_reg[d2 as usize] as u16;
                 let y_coord = self.v_reg[d3 as usize] as u16;
 
@@ -317,8 +317,8 @@ impl Chip8 {
                         }
                     }
                 }
-                self.v_reg[0xF] = if flipped {1} else {0};
-            },
+                self.v_reg[0xF] = if flipped { 1 } else { 0 };
+            }
             (0xE, _, 9, 0xE) => {
                 // Ex9E
                 // Skip if keys pressed
@@ -326,21 +326,21 @@ impl Chip8 {
                 let key_idx = self.v_reg[d2 as usize];
                 if self.keys[key_idx as usize] {
                     self.pc += 2
-                } 
-            },
+                }
+            }
             (0xE, _, 0xA, 1) => {
                 //Skip if keys not pressed
                 // ExA1
                 let key_idx = self.v_reg[d2 as usize];
                 if !self.keys[key_idx as usize] {
                     self.pc += 2
-                } 
-            },
+                }
+            }
             (0xF, _, 0, 7) => {
                 // Fx07
                 // set Vx to delay timer value
                 self.v_reg[d2 as usize] = self.dt;
-            },
+            }
             (0xF, _, 0, 0xA) => {
                 // Fx0A
                 // Wait for key press - blocks until a key is prssed
@@ -348,7 +348,7 @@ impl Chip8 {
                 let mut pressed = false;
                 for i in 0..self.keys.len() {
                     if self.keys[i] {
-                        self.v_reg[x] = i as u8;
+                        self.v_reg[d2 as usize] = i as u8;
                         pressed = true;
                         break;
                     }
@@ -357,44 +357,42 @@ impl Chip8 {
                 if !pressed {
                     self.pc += 2;
                 }
-            },
+            }
             (0xF, _, 1, 5) => {
-                // Fx15 
+                // Fx15
                 // Dt = Vx
                 let new_val = self.v_reg[d2 as usize];
                 self.dt = new_val;
-            },
+            }
             (0xF, _, 1, 8) => {
                 // Fx18
                 // St = Vx
                 let new_val = self.v_reg[d2 as usize];
                 self.st = new_val;
-            },
+            }
             (0xF, _, 1, 0xE) => {
                 // Fx1E
                 // I += Vx
                 // if overflow, register should simply roll over to 0.  (rusts wrapping_add)
                 self.v_reg[d2 as usize] = self.v_reg[d2 as usize].wrapping_add(self.i_reg as u8);
-            }, 
+            }
             (0xF, _, 2, 9) => {
                 // Fx29
                 // Set I to Font Address
                 // fonts are stored in the first sections of ram
                 // we are multiplying by 5 since each font is 5 bytes long
                 self.i_reg = self.v_reg[d2 as usize] as u16 * 5;
-            },
+            }
             (0xF, _, 3, 3) => {
                 // Fx33
                 // i = BCD of Vx (BCD - binary coded decimal)
-                
             }
 
-
-            (_, _, _, _) => unimplemented!("Unimplemented opcode: {}", op)
+            (_, _, _, _) => unimplemented!("Unimplemented opcode: {}", op),
         }
     }
 
-    pub fn tick_timers(&mut self ) {
+    pub fn tick_timers(&mut self) {
         if self.dt > 0 {
             self.dt -= 1;
         }
