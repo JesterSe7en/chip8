@@ -1,7 +1,7 @@
-const MEM_SIZE: usize = 0x1000;
-const V_REG_SIZE: usize = 0x0F;
-const STACK_SIZE: usize = 0x0F;
-const KEYPAD_SIZE: usize = 0x0F;
+const MEM_SIZE: usize = 4096;
+const V_REG_SIZE: usize = 16;
+const STACK_SIZE: usize = 16;
+const KEYPAD_SIZE: usize = 16;
 const START_ADDR: u16 = 0x200; // start address for all chip 8 programs
 
 const FONTSET_SIZE: usize = 80;
@@ -163,6 +163,7 @@ impl Chip8 {
                 let addr = op & 0xFFF;
                 self.push(self.pc);
                 self.pc = addr;
+                println!("Called addr");
             }
             (3, _, _, _) => {
                 // SKIP next if VX == NN
