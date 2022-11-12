@@ -82,6 +82,7 @@ impl Chip8 {
     pub fn reset(&mut self) {
         self.pc = START_ADDR;
         self.ram = [0; MEM_SIZE];
+        self.ram[..FONTSET_SIZE].copy_from_slice(&FONTSET);
         self.screen = [false; SCREEN_HEIGHT * SCREEN_WIDTH];
         self.v_reg = [0; V_REG_SIZE];
         self.i_reg = 0;
@@ -104,13 +105,10 @@ impl Chip8 {
     fn fetch(&mut self) -> u16 {
         // 4 bytes representing the instruction
         // most significant and least significant represnests the op code
-        let high = self.ram[self.pc as usize] as u16;
-        let low = self.ram[(self.pc + 1) as usize] as u16;
-        let op = (high << 8) | low;
-
-        // +2 since we are reading 4 bytes = 2 * u16 values
+        let higher_byte = self.ram[self.pc as usize] as u16;
+        let lower_byte = self.ram[(self.pc + 1) as usize] as u16;
+        let op = (higher_byte << 8) | lower_byte;
         self.pc += 2;
-
         op
     }
 
@@ -165,7 +163,6 @@ impl Chip8 {
                 let addr = op & 0xFFF;
                 self.push(self.pc);
                 self.pc = addr;
-                println!("Called addr");
             }
             (3, _, _, _) => {
                 // SKIP next if VX == NN
@@ -181,8 +178,8 @@ impl Chip8 {
                 // Skip next if Vx != kk
                 // 4XKK
                 let x = d2 as usize;
-                let kk = (op & 0xFF) as u8;
-                if self.v_reg[x] != kk {
+                let nn = (op & 0xFF) as u8;
+                if self.v_reg[x] != nn {
                     self.pc += 2;
                 }
             }
@@ -205,12 +202,16 @@ impl Chip8 {
             (7, _, _, _) => {
                 // set Vx = Vx + kk
                 // 7xkk
-                self.v_reg[d2 as usize] += (op & 0xFF) as u8;
+                let x = d2 as usize;
+                let nn = (op & 0xFF) as u8;
+                self.v_reg[x] = self.v_reg[x].wrapping_add(nn);
             }
             (8, _, _, 0) => {
                 // set Vx = Vy
                 // 8xy0
-                self.v_reg[d2 as usize] = self.v_reg[d3 as usize];
+                let x = d2 as usize;
+                let y = d3 as usize;
+                self.v_reg[x] = self.v_reg[y];
             }
             (8, _, _, 1) => {
                 // set Vx = Vx or Vy
@@ -472,13 +473,53 @@ impl Chip8 {
 //     left + right
 // }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-//     #[test]
-//     fn it_works() {
-//         let result = add(2, 2);
-//         assert_eq!(result, 4);
-//     }
-// }
+    fn setup() -> Chip8 {
+        Chip8::new()
+    }
+
+    #[test]
+    fn push_test() {
+        let mut c8 = setup();
+
+        c8.push(15);
+
+        assert_eq!(c8.sp, 1);
+        assert_eq!(c8.stack[0], 15);
+    }
+
+    #[test]
+    fn pop_test() {
+        let mut c8 = setup();
+
+        c8.push(15);
+        assert_eq!(c8.pop(), 15);
+        assert_eq!(c8.sp, 0);
+    }
+
+    #[test]
+    fn reset() {
+        let mut c8 = Chip8::new();
+        // set random data
+        c8.pc += 0x0F;
+        c8.ram = [0xF; MEM_SIZE];
+        c8.screen = [true; SCREEN_HEIGHT * SCREEN_WIDTH];
+        c8.v_reg = [0xF; V_REG_SIZE];
+        c8.i_reg = 0xFF;
+        c8.sp = 0x1D;
+        c8.stack = [0xF; STACK_SIZE];
+        c8.keys = [true; KEYPAD_SIZE];
+        c8.dt = 0x1D;
+        c8.st = 0x1D;
+
+        c8.reset();
+
+        // should be the same as a new chip
+        let c8_new = Chip8::new();
+        assert_eq!(c8.pc, c8_new.pc);
+        assert_eq!(c8.ram, c8_new.ram);
+    }
+}
