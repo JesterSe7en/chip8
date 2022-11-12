@@ -64,15 +64,18 @@ fn draw_screen(chip8: &Chip8, canvas: &mut Canvas<Window>) {
     canvas.clear();
 
     let screen_buf = chip8.get_display();
+    // Now set draw color to white, iterate through each point and see if it should be drawn
     canvas.set_draw_color(Color::RGB(255, 255, 255));
     for (i, pixel) in screen_buf.iter().enumerate() {
         if *pixel {
-            // covert 1d to 2d position
+            // Convert our 1D array's index into a 2D (x,y) position
             let x = (i % SCREEN_WIDTH) as u32;
             let y = (i / SCREEN_WIDTH) as u32;
 
+            // Draw a rectangle at (x,y), scaled up by our SCALE value
             let rect = Rect::new((x * SCALE) as i32, (y * SCALE) as i32, SCALE, SCALE);
-            canvas.fill_rect(rect).unwrap()
+            canvas.fill_rect(rect).unwrap();
         }
     }
+    canvas.present();
 }
