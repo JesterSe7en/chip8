@@ -522,4 +522,16 @@ mod tests {
         assert_eq!(c8.pc, c8_new.pc);
         assert_eq!(c8.ram, c8_new.ram);
     }
+
+    #[test]
+    fn fetch_test() {
+        let mut c8 = setup();
+        c8.ram[c8.pc as usize] = 0x5F;
+        c8.ram[(c8.pc + 1) as usize] = 0xA0;
+        let before_pc = c8.pc;
+
+        let op = c8.fetch();
+        assert_eq!(op, 0x5FA0);
+        assert_eq!(c8.pc, before_pc + 2);
+    }
 }
