@@ -1,4 +1,5 @@
 use chip8_core::*;
+use js_sys::Uint8Array;
 use wasm_bindgen::prelude::*;
 use web_sys::KeyboardEvent;
 
