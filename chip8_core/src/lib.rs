@@ -5,7 +5,6 @@ const V_REG_SIZE: usize = 16;
 const STACK_SIZE: usize = 16;
 const KEYPAD_SIZE: usize = 16;
 const START_ADDR: u16 = 0x200; // start address for all chip 8 programs
-
 const FONTSET_SIZE: usize = 80;
 
 const FONTSET: [u8; FONTSET_SIZE] = [
